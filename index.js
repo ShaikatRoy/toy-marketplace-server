@@ -28,16 +28,24 @@ async function run() {
     const toyCollection = client.db('figureMania').collection('toys');
 
     // toys
-
-    app.get('/toys', async(req, res) => {
-        console.log(req.query.email);
+    app.get('/toys', async (req, res) => {
+        const { email, sort } = req.query;
+      
         let query = {};
-        if (req.query?.email){
-            query = { email: req.query.email }
+        if (email) {
+          query = { email };
         }
-        const result = await toyCollection.find(query).toArray();
-        res.send(result);
-    })
+      
+        let sortQuery = { price: 1 }; 
+        if (sort === 'desc') {
+          sortQuery = { price: -1 }; 
+        }
+      
+        const result = await toyCollection.find(query).sort(sortQuery).toArray();
+        res.json(result);
+      });
+   
+      
 
 
     app.get('/toys/:id', async(req, res) => {
@@ -76,8 +84,28 @@ async function run() {
         res.send(result);
     })
 
-  
-
+    app.patch('/toys/:id', async (req, res) => {
+        const id = req.params.id;
+        const updatedToy = req.body;
+        
+        const query = { _id: new ObjectId(id) };
+        const update = {
+          $set: {
+            price: updatedToy.price,
+            quantity: updatedToy.quantity,
+            description: updatedToy.description
+          }
+        };
+        
+        try {
+          const result = await toyCollection.updateOne(query, update);
+          res.send(result);
+        } catch (error) {
+          console.error(error);
+          res.status(500).send('Error updating toy.');
+        }
+      });
+      
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
     console.log("Pinged your deployment. You successfully connected to MongoDB!");
